@@ -1,5 +1,4 @@
 import sys
-import snakemake
 
 sys.stderr = open(snakemake.log[0], "w")
 

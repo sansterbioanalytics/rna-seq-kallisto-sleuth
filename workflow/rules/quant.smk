@@ -7,6 +7,7 @@ rule kallisto_index:
         extra="",  # optional parameters
     log:
         "results/logs/kallisto/index.log",
+    threads: 4
     wrapper:
         "v1.23.1/bio/kallisto/index"
 
@@ -23,8 +24,8 @@ rule kallisto_quant:
         extra=kallisto_params,
     # around 4 gb of memory usage with 1 thread. (hg38)
     # over 8gb peak memory usage with 8 threads. (hg38)
-    threads: 8
+    threads: 6
     resources:
-        mem_mb=10000,
+        mem_mb=8000,
     wrapper:
         "v1.23.1/bio/kallisto/quant"

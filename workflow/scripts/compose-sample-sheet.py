@@ -1,4 +1,6 @@
 import sys
+import snakemake
+
 sys.stderr = open(snakemake.log[0], "w")
 
 samples_ = snakemake.params.units[["sample", "unit"]].merge(snakemake.params.samples, on="sample")

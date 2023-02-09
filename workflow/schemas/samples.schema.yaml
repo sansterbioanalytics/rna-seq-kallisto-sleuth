@@ -11,6 +11,12 @@ properties:
   batch_effect:
     type: string
     description: The batch that the sample belongs to
+  timepoint_days:
+    type: string
+    description: The number of days in the experiment when this sample was collected
+  media_condition:
+    type: string
+    description: The media condition used in this sample
     
 required:
   - sample

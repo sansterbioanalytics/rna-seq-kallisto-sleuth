@@ -14,7 +14,9 @@ level_name <- snakemake@wildcards[["level"]]
 # calculate covariate mean_obs for gene.aggregated data
 if (level_name == "genes-aggregated") {
   gene_data <- gene_data %>%
-    mutate(mean_obs = if_else(num_aggregated_transcripts > 0, sum_mean_obs_counts / num_aggregated_transcripts, 0), ens_gene = target_id)
+    mutate(mean_obs = if_else(num_aggregated_transcripts > 0,
+      sum_mean_obs_counts / num_aggregated_transcripts, 0
+    ), ens_gene = target_id)
 }
 
 # determine the appropriate number of groups for grouping in ihw calculation
@@ -26,7 +28,10 @@ ihw_test_grouping <- function(x) {
       return(TRUE)
     },
     error = function(e) {
-      print(str_c("Number of groups was set too hight, trying grouping by ", tested_number_of_groups - 1, " groups."))
+      print(str_c(
+        "Number of groups was set too hight, trying grouping by ",
+        tested_number_of_groups - 1, " groups."
+      ))
       return(FALSE)
     }
   )
@@ -38,7 +43,11 @@ while (!ihw_test_grouping(tested_number_of_groups) && tested_number_of_groups > 
 }
 
 if (tested_number_of_groups < number_of_groups) {
-  print(str_c("The chosen number of groups for ", level_name, " dataset was too large, instead IHW was calculated on ", tested_number_of_groups, " groups."))
+  print(str_c(
+    "The chosen number of groups for ", level_name,
+    " dataset was too large, instead IHW was calculated on ",
+    tested_number_of_groups, " groups."
+  ))
   number_of_groups <- tested_number_of_groups
 }
 
@@ -49,7 +58,10 @@ gene_data <- gene_data %>%
 
 ### diagnostic plots for covariate and grouping
 # dispersion plot
-dispersion <- ggplot(gene_data, aes(x = percent_rank(mean_obs), y = -log10(pval))) +
+dispersion <- ggplot(gene_data, aes(
+  x = percent_rank(mean_obs),
+  y = -log10(pval)
+)) +
   geom_point() +
   ggtitle("IHW: scatter plot of p-values vs. mean of counts") +
   theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) +
@@ -86,12 +98,19 @@ ggexport(histograms,
 )
 
 # ihw calculation
-ihw_results_mean <- ihw(pval ~ mean_obs, data = gene_data, alpha = 0.1, nbins = tested_number_of_groups)
+ihw_results_mean <- ihw(pval ~ mean_obs,
+  data = gene_data, alpha = 0.1,
+  nbins = tested_number_of_groups
+)
 
 # merging ens_gene-IDs and ext_gene-names
 ihw_mean <- as.data.frame(ihw_results_mean) %>%
-  # TODO remove ugly hack if ihw in future allows annotation columns (feature requested here: https://support.bioconductor.org/p/129972/)
-  right_join(gene_data, by = c(pvalue = "pval", covariate = "mean_obs", group = "grouping")) %>%
+  # TODO remove ugly hack if ihw in future allows annotation columns
+  # (feature requested here: https://support.bioconductor.org/p/129972/)
+  right_join(gene_data, by = c(
+    pvalue = "pval", covariate = "mean_obs",
+    group = "grouping"
+  )) %>%
   unique() %>%
   select(ens_gene, ext_gene, everything())
 

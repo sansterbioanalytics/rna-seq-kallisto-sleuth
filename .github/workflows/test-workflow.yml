@@ -16,6 +16,8 @@ jobs:
         submodules: true
     - name: Test workflow
       run: |
+        source "/usr/bin/conda/etc/profile.d/conda.sh"
+        conda activate
         mamba create -c conda-forge -c bioconda -c nodefaults --name test snakemake snakedeploy python==3.10.8
         mamba activate test
         conda config --set channel_priority strict

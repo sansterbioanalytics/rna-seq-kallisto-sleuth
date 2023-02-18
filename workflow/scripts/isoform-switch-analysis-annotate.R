@@ -1,6 +1,6 @@
-log <- file(snakemake@log[[1]], open="wt")
+log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
-sink(log, type="message")
+sink(log, type = "message")
 
 library("tidyverse")
 library("IsoformSwitchAnalyzeR")
@@ -8,7 +8,7 @@ library("IsoformSwitchAnalyzeR")
 results <- read_rds(snakemake@input[["rds"]])
 
 results <- analyzePFAM(
-    switchAnalyzeRlist = results, 
+    switchAnalyzeRlist = results,
     pathToPFAMresultFile = snakemake@input[["pfam"]],
     quiet = TRUE
 )
@@ -22,23 +22,23 @@ results <- analyzeCPAT(
 )
 
 results <- analyzeAlternativeSplicing(
-    results, 
-    quiet = FALSE, 
+    results,
+    quiet = FALSE,
     onlySwitchingGenes = FALSE,
 )
 
 dir.create(snakemake@output[["plots_with"]])
 dir.create(snakemake@output[["plots_without"]])
 
-if(nrow(results$isoformFeatures) > 0) {
+if (nrow(results$isoformFeatures) > 0) {
     results <- analyzeSwitchConsequences(
-        results, 
+        results,
         consequencesToAnalyze = c(
-            'intron_retention',
-            'coding_potential',
+            "intron_retention",
+            "coding_potential",
             # 'ORF_seq_similarity', TODO this is only needed for assembly, reactivate then
-            'NMD_status',
-            'domains_identified'
+            "NMD_status",
+            "domains_identified"
         ),
         onlySigIsoforms = FALSE,
         removeNonConseqSwitches = FALSE,
@@ -70,4 +70,4 @@ significant <- extractTopSwitches(
     dIFcutoff = snakemake@params[["min_effect_size"]],
 )
 
-write_tsv(significant, snakemake@output[["table"]])
+write_tsv(significant, file = snakemake@output[["table"]])

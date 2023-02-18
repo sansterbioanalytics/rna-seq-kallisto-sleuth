@@ -1,6 +1,6 @@
-log <- file(snakemake@log[[1]], open="wt")
+log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
-sink(log, type="message")
+sink(log, type = "message")
 
 library("SPIA")
 library("graphite")
@@ -17,28 +17,27 @@ db <- readRDS(snakemake@input[["spia_db"]])
 options(Ncpus = snakemake@threads)
 
 diffexp <- read_tsv(snakemake@input[["diffexp"]]) %>%
-            drop_na(ens_gene) %>%
-            mutate(ens_gene = str_c("ENSEMBL:", ens_gene))
+    drop_na(ens_gene) %>%
+    mutate(ens_gene = str_c("ENSEMBL:", ens_gene))
 universe <- diffexp %>% pull(var = ens_gene)
 sig_genes <- diffexp %>% filter(qval <= 0.05)
 
-if(nrow(sig_genes) == 0) {
+if (nrow(sig_genes) == 0) {
     cols <- c("Name", "pSize", "NDE", "pNDE", "tA", "pPERT", "pG", "pGFdr", "pGFWER", "Status")
-    res <- data.frame(matrix(ncol=10, nrow=0, dimnames=list(NULL, cols)))
+    res <- data.frame(matrix(ncol = 10, nrow = 0, dimnames = list(NULL, cols)))
     # create empty perturbation plots
     pdf(file = snakemake@output[["plots"]])
     dev.off()
 } else {
-
     # get logFC equivalent (the sum of beta scores of covariates of interest)
 
     beta_col <- get_prefix_col("b", colnames(sig_genes))
 
     beta <- sig_genes %>%
-                dplyr::select(ens_gene, !!beta_col) %>%
-                deframe()
+        dplyr::select(ens_gene, !!beta_col) %>%
+        deframe()
 
-    t <- tempdir(check=TRUE)
+    t <- tempdir(check = TRUE)
     olddir <- getwd()
     setwd(t)
     prepareSPIA(db, pw_db)
@@ -47,4 +46,4 @@ if(nrow(sig_genes) == 0) {
 
     file.copy(file.path(t, "SPIAPerturbationPlots.pdf"), snakemake@output[["plots"]])
 }
-write_tsv(res, snakemake@output[["table"]])
+write_tsv(res, file = snakemake@output[["table"]])

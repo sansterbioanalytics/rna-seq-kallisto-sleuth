@@ -22,6 +22,16 @@ include: "rules/diffexp.smk"
 include: "rules/diffsplice.smk"
 include: "rules/enrichment.smk"
 
+# BUG WARNING:snakemake.logging:Rules with provenance triggered jobs: 
+# rna_seq_kallisto_sleuth_
+# reason: Params have changed since last execution
+
+# rna_seq_kallisto_sleuth_fgsea
+# reason: Missing output files: results/tables/fgsea/model_X.all-gene-sets.tsv, results/plots/fgsea/model_X.table-plot.pdf, results/tables/fgsea/model_X.sig-gene-sets.tsv; Params have changed since last execution
+
+# rna_seq_kallisto_sleuth_get_spia_db
+# reason: Missing output files: resources/spia-db.rds; Params have changed since last execution
+
 
 rule all:
     input:

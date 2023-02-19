@@ -16,3 +16,5 @@ workflow/scripts/.snakemake*
 !.gitattributes
 .snakemake
 *.pyc
+tests/logs
+tests/logs/*

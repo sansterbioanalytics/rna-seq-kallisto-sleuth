@@ -20,6 +20,8 @@ poetry install --with dev
 poetry run snakefmt workflow/Snakefile
 # Format the rules
 poetry run snakefmt workflow/rules/
+# Format the scripts
+poetry run snakefmt workflow/scripts
 # Run test workflow and generate coverage report
 poetry run pytest
 ```

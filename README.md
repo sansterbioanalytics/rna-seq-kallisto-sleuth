@@ -13,10 +13,14 @@ The usage of this workflow is described in the [Snakemake Workflow Catalog](http
 
 If you use this workflow in a paper, don't forget to give credits to the authors by citing the URL of this (original) repository and its DOI (see above).
 
-## Development Setup
+## Development Test Setup
 
 ```bash
 poetry install --with dev
+# Format the Snakefile
 poetry run snakefmt workflow/Snakefile
+# Format the rules
+poetry run snakefmt workflow/rules/
+# Run test workflow and generate coverage report
 poetry run pytest
 ```

@@ -22,7 +22,8 @@ include: "rules/diffexp.smk"
 include: "rules/diffsplice.smk"
 include: "rules/enrichment.smk"
 
-# BUG WARNING:snakemake.logging:Rules with provenance triggered jobs: 
+
+# BUG WARNING:snakemake.logging:Rules with provenance triggered jobs:
 # rna_seq_kallisto_sleuth_
 # reason: Params have changed since last execution
 

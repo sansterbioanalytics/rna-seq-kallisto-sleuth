@@ -1,6 +1,4 @@
-kallisto_output = expand(
-    "results/kallisto/{unit.sample}-{unit.unit}", unit=units.itertuples()
-)
+kallisto_output = expand("results/kallisto/{unit.sample}-{unit.unit}", unit=units.itertuples())
 
 
 rule compose_sample_sheet:
@@ -69,12 +67,8 @@ rule sleuth_diffexp:
             category="QC",
         ),
         transcripts_rds="results/sleuth/diffexp/{model}.transcripts.diffexp.rds",
-        genes_aggregated_rds=(
-            "results/sleuth/diffexp/{model}.genes-aggregated.diffexp.rds"
-        ),
-        genes_representative_rds=(
-            "results/sleuth/diffexp/{model}.genes-representative.diffexp.rds"
-        ),
+        genes_aggregated_rds=("results/sleuth/diffexp/{model}.genes-aggregated.diffexp.rds"),
+        genes_representative_rds=("results/sleuth/diffexp/{model}.genes-representative.diffexp.rds"),
         transcripts=report(
             "results/tables/diffexp/{model}.transcripts.diffexp.tsv",
             caption="../report/diffexp.rst",
@@ -95,9 +89,7 @@ rule sleuth_diffexp:
         sig_level_volcano=config["diffexp"]["sig-level"]["volcano-plot"],
         sig_level_ma=config["diffexp"]["sig-level"]["ma-plot"],
         sig_level_qq=config["diffexp"]["sig-level"]["qq-plot"],
-        representative_transcripts=config["resources"]["ref"][
-            "representative_transcripts"
-        ],
+        representative_transcripts=config["resources"]["ref"]["representative_transcripts"],
     conda:
         "../envs/sleuth.yaml"
     log:
@@ -354,15 +346,11 @@ rule vega_volcano_plot:
         spec=workflow.source_path("../../resources/vega_volcano_plot.json"),
     output:
         json="results/plots/interactive/volcano/{model}.vl.json",
-        html=report(
-            "results/plots/interactive/volcano/{model}.html", category="Volcano plots"
-        ),
+        html=report("results/plots/interactive/volcano/{model}.html", category="Volcano plots"),
     params:
         model=get_model,
         sig_level_volcano=config["diffexp"]["sig-level"]["volcano-plot"],
-        primary_variable=lambda wc: config["diffexp"]["models"][wc.model][
-            "primary_variable"
-        ],
+        primary_variable=lambda wc: config["diffexp"]["models"][wc.model]["primary_variable"],
     log:
         "logs/vega-plots/volcano/{model}.log",
     conda:

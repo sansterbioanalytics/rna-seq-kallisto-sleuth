@@ -1,15 +1,22 @@
 import subprocess
+import pytest
 
-# Change directory to the location of the Snakefile
-workflow_dir = '../workflow/'
-command = f'cd {workflow_dir};'
 
-# Construct the Snakemake command
-snakemake_cmd = 'snakemake'
+@pytest.fixture()
+def snakemake_workflow(tmp_path) -> int:
+    """Test that the Snakemake workflow runs without errors."""
+    print('Starting Snakemake workflow test')
+    # Construct the Snakemake command
+    snakemake_cmd = 'snakemake --cores all --use-conda --directory tests --snakefile workflow/Snakefile --configfile tests/config/config.yaml'
+    # Specify any additional arguments to the Snakemake command here, for example:
+    snakemake_cmd += ''
+   
+    # Run the commands using subprocess.run
+    print(f'Running command: {snakemake_cmd}')
+    process = subprocess.run(f'{snakemake_cmd}', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    print('Finished running Snakemake workflow')
+    return process.returncode
 
-# Specify any additional arguments to the Snakemake command here, for example:
-# snakemake_cmd += ' --cores 4'
-
-# Run the Snakemake command using subprocess
-process = subprocess.Popen(f'{command} {snakemake_cmd}', shell=True)
-process.wait()
+def test_workflow_execution(snakemake_workflow):
+    """Test that the Snakemake workflow runs without errors."""
+    assert snakemake_workflow == 0

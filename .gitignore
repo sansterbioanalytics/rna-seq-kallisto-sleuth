@@ -15,5 +15,3 @@ workflow/scripts/.snakemake*
 !.gitignore
 !.editorconfig
 !.gitattributes
-!.test
-!.test/data

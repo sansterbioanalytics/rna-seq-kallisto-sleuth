@@ -2,7 +2,6 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4675671.svg)](https://doi.org/10.5281/zenodo.4675671)
 [![Snakemake](https://img.shields.io/badge/snakemake-≥6.3.0-brightgreen.svg)](https://snakemake.github.io)
-[![Snakemake-Report](https://img.shields.io/badge/snakemake-report-green.svg)](report.html)
 
 A Snakemake workflow for differential expression analysis of RNA-seq data with [Kallisto](https://pachterlab.github.io/kallisto) and [Sleuth](https://pachterlab.github.io/sleuth).
 

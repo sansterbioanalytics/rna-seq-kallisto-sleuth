@@ -7,7 +7,7 @@ def snakemake_workflow(tmp_path) -> int:
     """Test that the Snakemake workflow runs without errors."""
     print('Starting Snakemake workflow test')
     # Construct the Snakemake command
-    snakemake_cmd = 'snakemake --cores 4 --use-conda --directory tests --snakefile workflow/Snakefile --configfile tests/config/config.yaml'
+    snakemake_cmd = 'snakemake --cores all --use-conda --directory tests --snakefile workflow/Snakefile --configfile tests/config/config.yaml'
     # Specify any additional arguments to the Snakemake command here, for example:
     snakemake_cmd += ''
    

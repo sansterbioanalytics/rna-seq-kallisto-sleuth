@@ -8,9 +8,7 @@ from pathlib import Path
 
 validate(config, schema="../schemas/config.schema.yaml")
 
-samples = pd.read_csv(config["samples"], sep="\t", dtype=str, comment="#").set_index(
-    "sample", drop=False
-)
+samples = pd.read_csv(config["samples"], sep="\t", dtype=str, comment="#").set_index("sample", drop=False)
 samples.index.names = ["sample_id"]
 
 
@@ -22,13 +20,9 @@ def drop_unique_cols(df):
 samples = drop_unique_cols(samples)
 validate(samples, schema="../schemas/samples.schema.yaml")
 
-units = pd.read_csv(config["units"], dtype=str, sep="\t", comment="#").set_index(
-    ["sample", "unit"], drop=False
-)
+units = pd.read_csv(config["units"], dtype=str, sep="\t", comment="#").set_index(["sample", "unit"], drop=False)
 units.index.names = ["sample_id", "unit_id"]
-units.index = units.index.set_levels(
-    [i.astype(str) for i in units.index.levels]
-)  # enforce str in index
+units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 validate(units, schema="../schemas/units.schema.yaml")
 
 
@@ -49,9 +43,7 @@ wildcard_constraints:
 
 def check_config():
     representative_transcripts_keywords = ["canonical", "mostsignificant"]
-    representative_transcripts = config["resources"]["ref"][
-        "representative_transcripts"
-    ]
+    representative_transcripts = config["resources"]["ref"]["representative_transcripts"]
     if representative_transcripts not in representative_transcripts_keywords:
         if not os.path.exists(representative_transcripts):
             raise ValueError(
@@ -134,9 +126,9 @@ def kallisto_params(wildcards, input):
     extra = config["params"]["kallisto"]
     if len(input.fastq) == 1:
         extra += " --single"
-        extra += (
-            " --fragment-length {unit.fragment_len_mean} " "--sd {unit.fragment_len_sd}"
-        ).format(unit=units.loc[(wildcards.sample, wildcards.unit)])
+        extra += (" --fragment-length {unit.fragment_len_mean} " "--sd {unit.fragment_len_sd}").format(
+            unit=units.loc[(wildcards.sample, wildcards.unit)]
+        )
     else:
         extra += " --fusion"
     return extra
@@ -159,12 +151,8 @@ def all_input(wildcards):
                 ],
                 model=config["diffexp"]["models"],
                 go_ns=["BP", "CC", "MF"],
-                gene_fdr=str(config["enrichment"]["goatools"]["fdr_genes"]).replace(
-                    ".", "-"
-                ),
-                go_term_fdr=str(
-                    config["enrichment"]["goatools"]["fdr_go_terms"]
-                ).replace(".", "-"),
+                gene_fdr=str(config["enrichment"]["goatools"]["fdr_genes"]).replace(".", "-"),
+                go_term_fdr=str(config["enrichment"]["goatools"]["fdr_go_terms"]).replace(".", "-"),
             )
         )
 
@@ -270,9 +258,7 @@ def all_input(wildcards):
         )
 
     # sleuth bootstrap plots
-    wanted_input.extend(
-        expand("results/plots/bootstrap/{model}", model=config["diffexp"]["models"])
-    )
+    wanted_input.extend(expand("results/plots/bootstrap/{model}", model=config["diffexp"]["models"]))
 
     # fragment length distribution plots
     wanted_input.extend(

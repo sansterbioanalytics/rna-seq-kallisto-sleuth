@@ -1,3 +1,4 @@
+# Workflow
 !config/config.yaml
 !config/samples.tsv
 !config/units.tsv
@@ -15,6 +16,47 @@ workflow/scripts/.snakemake*
 !.editorconfig
 !.gitattributes
 .snakemake
-*.pyc
 tests/logs
 tests/logs/*
+
+# Result Plots
+*.pdf
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large files
+*.bam
+*.sam
+*.fastq.gz
+*.fastq
+*.fq.gz
+*.fq
+*.rds
+
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/

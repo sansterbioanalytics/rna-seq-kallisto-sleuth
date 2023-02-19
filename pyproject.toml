@@ -5,7 +5,7 @@ description = "A Snakemake workflow for differential expression analysis of RNA-
 authors = ["Johannes Köster"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "rna_seq_kallisto_sleuth"}]
+packages = [{include = "workflow"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -39,3 +39,6 @@ directory = "tests/coverage_html_report"
 
 [tool.coverage.report]
 fail_under = 80
+
+[tool.pytest]
+addopts = "--cov=workflow --cov-report=term-missing --cov-report=html:tests/coverage_html_report --black --flake8 --mypy --ignore=tests/coverage_html_report --ignore=tests/coverage.html"

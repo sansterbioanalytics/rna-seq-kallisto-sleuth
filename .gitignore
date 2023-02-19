@@ -14,3 +14,4 @@ workflow/scripts/.snakemake*
 !.gitignore
 !.editorconfig
 !.gitattributes
+.snakemake

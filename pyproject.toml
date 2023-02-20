@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "rna-seq-kallisto-sleuth"
+version = "2.4.4"
+description = "A Snakemake workflow for differential expression analysis of RNA-seq data with Kallisto and Sleuth"
+authors = ["Johannes Köster"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "workflow"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+snakemake = "^7.23.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest-coverage = "^0.0"
+snakedeploy = "^0.8.6"
+snakefmt = "^0.8.1"
+mypy = "^1.0.1"
+pytest = "^7.2.1"
+pytest-black = "^0.3.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.snakefmt]
+line_length = 120
+include = '\.smk$|^Snakefile|\.py$'
+
+# snakefmt passes these options on to black
+[tool.black]
+skip_string_normalization = true
+
+[tool.coverage.run]
+omit = [".*", "*/site-packages/*"]
+
+[tool.coverage.html]
+directory = "tests/coverage_html_report"
+
+[tool.coverage.report]
+fail_under = 80
+
+[tool.pytest]
+addopts = "--cov=workflow --cov-report=term-missing --cov-report=html:tests/coverage_html_report --black --flake8 --mypy --ignore=tests/coverage_html_report --ignore=tests/coverage.html"
+
+[tool.pytest.ini_options]
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+log_cli = true

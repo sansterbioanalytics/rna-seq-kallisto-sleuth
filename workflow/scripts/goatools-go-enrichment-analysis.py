@@ -81,10 +81,7 @@ ensembl_id_to_symbol = dict(zip(all_genes["ens_gene"], all_genes["ext_gene"]))
 # from first plot output file name, create generic file name to trigger
 # separate plots for each of the gene ontology name spaces
 outplot_generic = (
-    snakemake.output.plot[0]
-    .replace("_BP.", "_{NS}.", 1)
-    .replace("_CC.", "_{NS}.", 1)
-    .replace("_MF.", "_{NS}.", 1)
+    snakemake.output.plot[0].replace("_BP.", "_{NS}.", 1).replace("_CC.", "_{NS}.", 1).replace("_MF.", "_{NS}.", 1)
 )
 
 goea_results_sig = [r for r in goea_results_all if r.p_fdr_bh < fdr_level_go_term]

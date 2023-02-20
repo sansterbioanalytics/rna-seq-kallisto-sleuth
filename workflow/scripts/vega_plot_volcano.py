@@ -25,7 +25,6 @@ HTML = r"""
 
 
 def main(snakemake):
-
     # read vega js file with template vars
     # `$data`, `$sig_level`, `$beta_column` and `$beta_se_column`
     with open(snakemake.input.spec, "rt") as f:
@@ -37,11 +36,7 @@ def main(snakemake):
     # find column that matches primary variable
     df: pd.DataFrame = pd.read_csv(snakemake.input.tsv, sep="\t")
 
-    primary_cols = [
-        c
-        for c in list(df.columns)
-        if c.startswith(f"b_{primary_var}") and not c.endswith("_se")
-    ]
+    primary_cols = [c for c in list(df.columns) if c.startswith(f"b_{primary_var}") and not c.endswith("_se")]
     if len(primary_cols) > 1:
         print("WARNING: found {len(primary_cols)} possible primary variables")
     beta_col = primary_cols[0]

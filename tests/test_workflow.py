@@ -11,7 +11,7 @@ def snakemake_workflow(tmp_path_factory) -> int:
     os.system(f'cp -r workflow {test_dir}')
     os.system(f'cp -r tests {test_dir}')
     # Construct the Snakemake command
-    snakemake_cmd = 'snakemake --cores all --use-conda --directory tests --snakefile workflow/Snakefile --configfile tests/config/config.yaml'
+    snakemake_cmd = f'snakemake --cores all --use-conda --directory {test_dir}/tests --snakefile {test_dir}/workflow/Snakefile --configfile {test_dir}/tests/config/config.yaml'
     # Specify any additional arguments to the Snakemake command here, for example:
     snakemake_cmd += ''
 

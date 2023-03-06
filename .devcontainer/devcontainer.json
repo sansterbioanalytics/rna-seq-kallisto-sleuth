@@ -1,0 +1,28 @@
+// For format details, see https://aka.ms/devcontainer.json.
+{
+    "name": "Ubuntu - Python 3.10",
+    // Using the same image as the actions runner for seamless renv and dependencies
+    "image": "ghcr.io/sansterbioanalytics/unified-actions-runner:python-3.10",
+    "remoteUser": "vscode",
+    // Features to add to the dev container. More info: https://containers.dev/features.
+    "features": {
+        // "ghcr.io/devcontainers/features/github-cli:1": {}
+        // "ghcr.io/devcontainers/features/aws-cli:1": {},
+        // "ghcr.io/devcontainers/features/common-utils:2": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    },
+    // "runArgs": [
+    //     "--env-file",
+    //     ".devcontainer/devcontainer.env"
+    // ],
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+    },
+    "postCreateCommand": "poetry install --with dev"
+}

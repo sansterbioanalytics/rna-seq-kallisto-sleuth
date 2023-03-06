@@ -45,7 +45,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+devcontainer.env
 
 # Unit test / coverage reports
 htmlcov/

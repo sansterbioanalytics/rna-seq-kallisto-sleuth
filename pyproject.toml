@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rna-seq-kallisto-sleuth"
-version = "2.4.4"
+version = "2.6.1"
 description = "A Snakemake workflow for differential expression analysis of RNA-seq data with Kallisto and Sleuth"
 authors = ["Johannes Köster"]
 license = "MIT"

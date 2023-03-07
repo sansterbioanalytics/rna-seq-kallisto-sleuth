@@ -7,7 +7,7 @@ rule kallisto_index:
         extra="",  # optional parameters
     log:
         "results/logs/kallisto/index.log",
-    threads: 4
+    threads: 8
     wrapper:
         "v1.23.1/bio/kallisto/index"
 

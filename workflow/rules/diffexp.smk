@@ -327,17 +327,17 @@ rule plot_vars:
         "../scripts/plot-variances.R"
 
 
-rule vg2svg:
-    input:
-        "{prefix}.vl.json",
-    output:
-        "{prefix}.svg",
-    log:
-        "logs/vg2svg/{prefix}.log",
-    conda:
-        "../envs/vega.yaml"
-    shell:
-        "vl2svg {input} {output} 2> {log}"
+# rule vg2svg:
+#     input:
+#         "{prefix}.vl.json",
+#     output:
+#         "{prefix}.svg",
+#     log:
+#         "logs/vg2svg/{prefix}.log",
+#     conda:
+#         "../envs/vega.yaml"
+#     shell:
+#         "vl2svg {input} {output} 2> {log}"
 
 # BUG Missing input file exception, unable to find vega volcano plot.json despite it being in the resources folder.
 # rule vega_volcano_plot:

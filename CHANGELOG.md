@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/sansterbioanalytics/rna-seq-kallisto-sleuth/compare/v2.6.0...v2.6.1) (2023-03-07)
+
+
+### Bug Fixes
+
+* index only is single-threaded no matter what ([001660e](https://github.com/sansterbioanalytics/rna-seq-kallisto-sleuth/commit/001660e9e44f471c4f11b7fcc2ab16a9fa13c377))
+
 ## [2.6.0](https://github.com/sansterbioanalytics/rna-seq-kallisto-sleuth/compare/v2.5.0...v2.6.0) (2023-02-20)
 
 

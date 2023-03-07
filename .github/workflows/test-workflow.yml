@@ -14,10 +14,10 @@ jobs:
     - uses: actions/checkout@v3
     - name: snakefmt
       run: |
-        poetry install --with dev
-        poetry run snakefmt workflow/Snakefile
-        poetry run snakefmt workflow/rules/
-        poetry run snakefmt workflow/scripts/
+        /usr/bin/poetry/bin/poetry install --with dev
+        /usr/bin/poetry/bin/poetry run snakefmt workflow/Snakefile
+        /usr/bin/poetry/bin/poetry run snakefmt workflow/rules/
+        /usr/bin/poetry/bin/poetry run snakefmt workflow/scripts/
 
   run-workflow:
     runs-on: [self-hosted, Linux, python-3.10]
@@ -28,5 +28,5 @@ jobs:
         submodules: true
     - name: Test workflow
       run: |
-        poetry install --with dev
-        poetry run pytest
+        /usr/bin/poetry/bin/poetry install --with dev
+        /usr/bin/poetry/bin/poetry run pytest

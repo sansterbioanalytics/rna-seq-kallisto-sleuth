@@ -1,14 +1,15 @@
-from snakemake.utils import validate
-import pandas as pd
+import glob
+from os import path
+
 import yaml
-from pathlib import Path
+import pandas as pd
+from snakemake.remote import FTP
+from snakemake.utils import validate
 
-##### load config and sample sheets #####
-
+ftp = FTP.RemoteProvider()
 
 validate(config, schema="../schemas/config.schema.yaml")
-
-samples = pd.read_csv(config["samples"], sep="\t", dtype=str, comment="#").set_index("sample", drop=False)
+samples = pd.read_csv(config["samples"], sep="\t", dtype=str, comment="#").set_index("sample_name", drop=False)
 samples.index.names = ["sample_id"]
 
 
@@ -20,40 +21,272 @@ def drop_unique_cols(df):
 samples = drop_unique_cols(samples)
 validate(samples, schema="../schemas/samples.schema.yaml")
 
-units = pd.read_csv(config["units"], dtype=str, sep="\t", comment="#").set_index(["sample", "unit"], drop=False)
+units = pd.read_csv(config["units"], dtype=str, sep="\t", comment="#").set_index(
+    ["sample_name", "unit_name"], drop=False
+)
 units.index.names = ["sample_id", "unit_id"]
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 validate(units, schema="../schemas/units.schema.yaml")
 
+# Setup groups
+groups = samples["group"].unique()
+group_annotation = pd.DataFrame({"group": groups}).set_index("group")
 
-report: "../report/workflow.rst"
+# construct genome name
+datatype = "dna"
+species = config["resources"]["ref"]["species"]
+build = config["resources"]["ref"]["build"]
+release = config["resources"]["ref"]["release"]
+genome_name = f"genome.{datatype}.{species}.{build}.{release}"
+genome_prefix = f"resources/{genome_name}"
+genome = f"{genome_prefix}.fasta"
+genome_fai = f"{genome}.fai"
+genome_dict = f"{genome_prefix}.dict"
 
 
-##### wildcard constraints #####
+def _group_or_sample(row):
+    group = row.get("group", None)
+    if pd.isnull(group):
+        return row["sample_name"]
+    return group
+
+
+def get_final_output(wildcards):
+    final_output = expand(
+        "results/star_se_output/{sample}/Log.final.out",
+        sample=samples["sample_name"],
+    )
+    return final_output
+
+
+def get_cutadapt_input(wildcards):
+    unit = units.loc[wildcards.sample].loc[wildcards.unit]
+
+    if pd.isna(unit["fq1"]):
+        return get_sra_reads(wildcards.sample, wildcards.unit, ["1", "2"])
+
+    if unit["fq1"].endswith("gz"):
+        ending = ".gz"
+    else:
+        ending = ""
+
+    if pd.isna(unit["fq2"]):
+        # single end local sample
+        return "pipe/cutadapt/{S}/{U}.fq1.fastq{E}".format(S=unit.sample_name, U=unit.unit_name, E=ending)
+    else:
+        # paired end local sample
+        return expand(
+            "pipe/cutadapt/{S}/{U}.{{read}}.fastq{E}".format(S=unit.sample_name, U=unit.unit_name, E=ending),
+            read=["fq1", "fq2"],
+        )
+
+
+def get_sra_reads(sample, unit, fq):
+    unit = units.loc[sample].loc[unit]
+    # SRA sample (always paired-end for now)
+    accession = unit["sra"]
+    return expand("sra/{accession}_{read}.fastq.gz", accession=accession, read=fq)
+
+
+def get_raw_reads(sample, unit, fq):
+    pattern = units.loc[sample].loc[unit, fq]
+    if pd.isna(pattern):
+        assert fq.startswith("fq")
+        fq = fq[len("fq") :]
+        return get_sra_reads(sample, unit, fq)
+
+    if "*" in pattern:
+        files = sorted(glob.glob(units.loc[sample].loc[unit, fq]))
+        if not files:
+            raise ValueError(
+                "No raw fastq files found for unit pattern {} (sample {}). "
+                "Please check the your sample sheet.".format(unit, sample)
+            )
+    else:
+        files = [pattern]
+    return files
+
+
+def get_cutadapt_pipe_input(wildcards):
+    return get_raw_reads(wildcards.sample, wildcards.unit, wildcards.fq)
+
+
+def get_fastqc_input(wildcards):
+    return get_raw_reads(wildcards.sample, wildcards.unit, wildcards.fq)[0]
+
+
+def get_cutadapt_adapters(wildcards):
+    unit = units.loc[wildcards.sample].loc[wildcards.unit]
+    try:
+        adapters = unit["adapters"]
+        if isinstance(adapters, str):
+            return adapters
+        return ""
+    except KeyError:
+        return ""
+
+
+def is_paired_end(sample):
+    sample_units = units.loc[sample]
+    fq2_null = sample_units["fq2"].isnull()
+    sra_null = sample_units["sra"].isnull()
+    paired = ~fq2_null | ~sra_null
+    all_paired = paired.all()
+    all_single = (~paired).all()
+    assert all_single or all_paired, "invalid units for sample {}, must be all paired end or all single end".format(
+        sample
+    )
+    return all_paired
+
+
+def group_is_paired_end(group):
+    samples = get_group_samples(group)
+    return all([is_paired_end(sample) for sample in samples])
+
+
+def get_group_aliases(group):
+    return samples.loc[samples["group"] == group]["alias"]
+
+
+def get_group_samples(group):
+    return samples.loc[samples["group"] == group]["sample_name"]
+
+
+def get_group_sample_aliases(wildcards, controls=True):
+    if controls:
+        return samples.loc[samples["group"] == wildcards.group]["alias"]
+    return samples.loc[(samples["group"] == wildcards.group) & (samples["control"] == "no")]["alias"]
+
+
+# def get_trimming_input(wildcards):
+#     if is_activated("remove_duplicates"):
+#         return "results/dedup/{}.bam".format(wildcards.sample)
+#     else:
+#         return "results/mapped/{}.bam".format(wildcards.sample)
+
+
+def _get_batch_info(wildcards):
+    for group in get_report_batch(wildcards):
+        for sample, bam in get_group_bams_report(group):
+            yield sample, bam, group
+
+
+def get_batch_bams(wildcards):
+    return (bam for _, bam, _ in _get_batch_info(wildcards))
+
+
+def get_report_bam_params(wildcards, input):
+    return [
+        "{group}:{sample}={bam}".format(group=group, sample=sample, bam=bam)
+        for (sample, _, group), bam in zip(_get_batch_info(wildcards), input.bams)
+    ]
+
+
+def get_resource(name):
+    return workflow.source_path("../resources/{}".format(name))
+
+
+def get_read_group(wildcards):
+    """Denote sample name and platform in read group."""
+    return r"-R '@RG\tID:{sample}\tSM:{sample}\tPL:{platform}'".format(
+        sample=wildcards.sample, platform=samples.loc[wildcards.sample, "platform"]
+    )
+
+
+def get_report_batch(wildcards):
+    if wildcards.batch == "all":
+        _groups = groups
+    else:
+        _groups = samples.loc[
+            samples[config["report"]["stratify"]["by-column"]] == wildcards.batch,
+            "group",
+        ].unique()
+    if not any(_groups):
+        raise ValueError("No samples found. Is your sample sheet empty?")
+    return _groups
+
+
+# def get_scattered_calls(ext="bcf"):
+#     def inner(wildcards):
+#         return expand(
+#             "results/calls/{{group}}.{caller}.{{scatteritem}}.{ext}",
+#             caller=caller,
+#             ext=ext,
+#         )
+#     return inner
+
+
+# def get_merge_calls_input(ext="bcf"):
+#     def inner(wildcards):
+#         return expand(
+#             "results/calls/{{group}}.{vartype}.{{event}}.fdr-controlled.{ext}",
+#             ext=ext,
+#             vartype=["SNV", "INS", "DEL", "MNV", "BND", "INV", "DUP", "REP"],
+#         )
+#     return inner
+
+
+# def get_filter_targets(wildcards, input):
+#     if input.predefined:
+#         return " | bedtools intersect -a /dev/stdin -b {input.predefined} ".format(
+#             input=input
+#         )
+#     else:
+#         return ""
+# caller = list(
+#     filter(
+#         None,
+#         [
+#             "freebayes" if is_activated("calling/freebayes") else None,
+#             "delly" if is_activated("calling/delly") else None,
+#         ],
+#     )
+# )
 
 
 wildcard_constraints:
-    sample="|".join(samples.index),
-    unit="|".join(units["unit"]),
-    model="|".join(list(config["diffexp"].get("models", [])) + ["all"]),
+    group="|".join(groups),
+    sample="|".join(samples["sample_name"]),
 
 
-####### helpers ###########
+### USAGE of wc seems to be in lambda functions within snakemake rules, ex
+# params:
+#     primers=lambda wc, input: format_bowtie_primers(wc, input.primers),
+
+# def get_fastqs(wc):
+#     return expand(
+#         "results/trimmed/{sample}/{unit}_{read}.fastq.gz",
+#         unit=units.loc[wc.sample, "unit_name"],
+#         sample=wc.sample,
+#         read=wc.read,
+#     )
 
 
-def check_config():
-    representative_transcripts_keywords = ["canonical", "mostsignificant"]
-    representative_transcripts = config["resources"]["ref"]["representative_transcripts"]
-    if representative_transcripts not in representative_transcripts_keywords:
-        if not os.path.exists(representative_transcripts):
-            raise ValueError(
-                f"Invalid value given for resources/ref/representative_transcripts in "
-                "configuration. Must be 'canonical', 'mostsignificant' or valid path, "
-                "but {representative_transcripts} does not exist or is not readable."
-            )
+def get_sample_alias(wildcards):
+    return samples.loc[wildcards.sample, "alias"]
 
 
-check_config()
+# def get_fastqc_results(wildcards):
+#     group_samples = get_group_samples(wildcards.group)
+#     sample_units = units.loc[group_samples]
+#     sra_units = pd.isna(sample_units["fq1"])
+#     paired_end_units = sra_units | ~pd.isna(sample_units["fq2"])
+
+#     # fastqc
+#     pattern = "results/qc/fastqc/{unit.sample_name}/{unit.unit_name}.{fq}_fastqc.zip"
+#     yield from expand(pattern, unit=sample_units.itertuples(), fq="fq1")
+#     yield from expand(pattern, unit=sample_units[paired_end_units].itertuples(), fq="fq2")
+
+#     # cutadapt
+#     pattern = "results/trimmed/{unit.sample_name}/{unit.unit_name}.{mode}.qc.txt"
+#     yield from expand(pattern, unit=sample_units[paired_end_units].itertuples(), mode="paired")
+#     yield from expand(pattern, unit=sample_units[~paired_end_units].itertuples(), mode="single")
+
+#     # samtools idxstats
+#     yield from expand("results/qc/{sample}.bam.idxstats", sample=group_samples)
+
+#     # samtools stats
+#     yield from expand("results/qc/{sample}.bam.stats", sample=group_samples)
 
 
 def is_activated(config_element):
@@ -92,190 +325,3 @@ def get_trimmed(wildcards):
         )
     # single end sample
     return expand("results/trimmed/{sample}-{unit}.fastq.gz", **wildcards)
-
-
-def get_bioc_species_name():
-    first_letter = config["resources"]["ref"]["species"][0]
-    subspecies = config["resources"]["ref"]["species"].split("_")[1]
-    return first_letter + subspecies
-
-
-def get_bioc_species_pkg():
-    """Get the package bioconductor package name for the the species in config.yaml"""
-    species_letters = get_bioc_species_name()[0:2].capitalize()
-    return "org.{species}.eg.db".format(species=species_letters)
-
-
-def render_enrichment_env():
-    species_pkg = f"bioconductor-{get_bioc_species_pkg()}"
-    with open(workflow.source_path("../envs/enrichment.yaml")) as f:
-        env = yaml.load(f, Loader=yaml.SafeLoader)
-    env["dependencies"].append(species_pkg)
-    env_path = Path("resources/envs/enrichment.yaml")
-    env_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(env_path, "w") as f:
-        yaml.dump(env, f)
-    return env_path.absolute()
-
-
-bioc_species_pkg = get_bioc_species_pkg()
-enrichment_env = render_enrichment_env()
-
-
-def kallisto_params(wildcards, input):
-    extra = config["params"]["kallisto"]
-    if len(input.fastq) == 1:
-        extra += " --single"
-        extra += (" --fragment-length {unit.fragment_len_mean} " "--sd {unit.fragment_len_sd}").format(
-            unit=units.loc[(wildcards.sample, wildcards.unit)]
-        )
-    else:
-        extra += " --fusion"
-    return extra
-
-
-def all_input(wildcards):
-    """
-    Function defining all requested inputs for the rule all (below).
-    """
-
-    wanted_input = []
-
-    # request goatools if 'activated' in config.yaml
-    if config["enrichment"]["goatools"]["activate"]:
-        wanted_input.extend(
-            expand(
-                [
-                    "results/tables/go_terms/{model}.go_term_enrichment.gene_fdr_{gene_fdr}.go_term_fdr_{go_term_fdr}.tsv",
-                    "results/plots/go_terms/{model}.go_term_enrichment_{go_ns}.gene_fdr_{gene_fdr}.go_term_fdr_{go_term_fdr}.pdf",
-                ],
-                model=config["diffexp"]["models"],
-                go_ns=["BP", "CC", "MF"],
-                gene_fdr=str(config["enrichment"]["goatools"]["fdr_genes"]).replace(".", "-"),
-                go_term_fdr=str(config["enrichment"]["goatools"]["fdr_go_terms"]).replace(".", "-"),
-            )
-        )
-
-    # request fgsea if 'activated' in config.yaml
-    if config["enrichment"]["fgsea"]["activate"]:
-        wanted_input.extend(
-            expand(
-                [
-                    "results/tables/fgsea/{model}.all-gene-sets.tsv",
-                    "results/tables/fgsea/{model}.sig-gene-sets.tsv",
-                    "results/plots/fgsea/{model}.table-plot.pdf",
-                    "results/plots/fgsea/{model}",
-                ],
-                model=config["diffexp"]["models"],
-            )
-        )
-
-    # request spia if 'activated' in config.yaml
-    if config["enrichment"]["spia"]["activate"]:
-        wanted_input.extend(
-            expand(
-                ["results/tables/pathways/{model}.pathways.tsv"],
-                model=config["diffexp"]["models"],
-            )
-        )
-
-    # workflow output that is always wanted
-
-    # general sleuth output
-    wanted_input.extend(
-        expand(
-            [
-                "results/plots/mean-var/{model}.mean-variance-plot.pdf",
-                "results/plots/volcano/{model}.volcano-plots.pdf",
-                # "results/plots/interactive/volcano/{model}.svg",
-                "results/plots/ma/{model}.ma-plots.pdf",
-                "results/plots/qq/{model}.qq-plots.pdf",
-                "results/tables/diffexp/{model}.transcripts.diffexp.tsv",
-                # "results/plots/diffexp-heatmap/{model}.diffexp-heatmap.pdf", # see rule plot_diffexp_heatmap
-                "results/tables/logcount-matrix/{model}.logcount-matrix.tsv",
-            ],
-            model=config["diffexp"]["models"],
-        )
-    )
-
-    # ihw false discovery rate control
-    wanted_input.extend(
-        expand(
-            [
-                "results/tables/ihw/{model}.{level}.ihw-results.tsv",
-                "results/plots/ihw/{level}/{model}.{level}.plot-dispersion.pdf",
-                "results/plots/ihw/{level}/{model}.{level}.plot-histograms.pdf",
-                "results/plots/ihw/{level}/{model}.{level}.plot-trends.pdf",
-                "results/plots/ihw/{level}/{model}.{level}.plot-decision.pdf",
-                "results/plots/ihw/{level}/{model}.{level}.plot-adj-pvals.pdf",
-            ],
-            model=config["diffexp"]["models"],
-            level=["transcripts", "genes-aggregated", "genes-representative"],
-        )
-    )
-
-    # sleuth p-value histogram plots
-    wanted_input.extend(
-        expand(
-            "results/plots/diffexp/{model}.{level}.diffexp-pval-hist.pdf",
-            model=config["diffexp"]["models"],
-            level=["transcripts", "genes-aggregated", "genes-representative"],
-        )
-    )
-
-    # technical variance vs. observed variance
-    # wanted_input.extend(
-    #        expand("results/plots/variance/{model}.transcripts.plot_vars.pdf", model=config["diffexp"]["models"]),
-    #    )
-
-    # PCA plots of kallisto results, each coloured for a different covariate
-    wanted_input.extend(
-        expand(
-            [
-                "results/plots/pc-variance/{covariate}.pc-variance-plot.pdf",
-                "results/plots/loadings/{covariate}.loadings-plot.pdf",
-                "results/plots/pca/{covariate}.pca.pdf",
-            ],
-            covariate=samples.columns[samples.columns != "sample"],
-        )
-    )
-
-    # group-density plot
-    wanted_input.extend(
-        expand(
-            ["results/plots/group_density/{model}.group_density.pdf"],
-            model=config["diffexp"]["models"],
-        )
-    )
-
-    # scatter plots
-    if config["scatter"]["activate"]:
-        wanted_input.extend(
-            expand(
-                ["results/plots/scatter/{model}.scatter.pdf"],
-                model=config["diffexp"]["models"],
-            )
-        )
-
-    # sleuth bootstrap plots
-    wanted_input.extend(expand("results/plots/bootstrap/{model}", model=config["diffexp"]["models"]))
-
-    # fragment length distribution plots
-    wanted_input.extend(
-        expand(
-            "results/plots/fld/{unit.sample}-{unit.unit}.fragment-length-dist.pdf",
-            unit=units[["sample", "unit"]].itertuples(),
-        )
-    )
-
-    if is_activated(config["diffsplice"]):
-        # diffsplice analysis
-        wanted_input.extend(
-            expand(
-                "results/plots/diffsplice/{model}/{cons}",
-                model=config["diffexp"]["models"],
-                cons=["with_consequences", "without_consequences"],
-            )
-        )
-
-    return wanted_input

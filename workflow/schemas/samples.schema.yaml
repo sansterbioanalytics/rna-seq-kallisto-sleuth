@@ -1,8 +1,8 @@
 $schema: "http://json-schema.org/draft-04/schema#"
 
-description: an entry in the sample sheet
+description: an entry in the samples.tsv sheet
 properties:
-  sample:
+  sample_name:
     type: string
     description: sample name/identifier
   condition:
@@ -17,6 +17,6 @@ properties:
   media_condition:
     type: string
     description: The media condition used in this sample
-    
-required:
-  - sample
+  required:
+      - sample_name
+      - condition

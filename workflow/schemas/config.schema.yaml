@@ -181,6 +181,16 @@ properties:
             type: string
           extra:
             type: string
+      star-pe:
+        type: object
+        properties:
+          extra:
+            type: string
+      star-se:
+        type: object
+        properties:
+          extra:
+            type: string
     required:
       - kallisto
       - cutadapt-se

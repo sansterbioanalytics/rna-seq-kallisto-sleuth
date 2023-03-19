@@ -17,11 +17,7 @@ If you use this workflow in a paper, don't forget to give credits to the authors
 ```bash
 poetry install --with dev
 # Format the Snakefile
-poetry run snakefmt workflow/Snakefile
-# Format the rules
-poetry run snakefmt workflow/rules/
-# Format the scripts
-poetry run snakefmt workflow/scripts
+poetry run snakefmt workflow/Snakefile workflow/rules/ workflow/scripts
 # Run test workflow and generate coverage report
 poetry run pytest
 ```

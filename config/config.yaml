@@ -6,7 +6,7 @@ resources:
     # ensembl species name
     species: homo_sapiens
     # ensembl release version
-    release: "104"
+    release: "109"
     # genome build
     build: GRCh38
     # pfam release to use for annotation of domains in differential splicing analysis
@@ -47,11 +47,29 @@ diffexp:
       # base level of the primary variable (will be considered as denominator
       # in the fold change/effect size estimation).
       base_level: untreated
+    # model_Y:
+    #   full: ~media_condition + batch_effect
+    #   reduced: ~batch_effect
+    #   # Binary valued covariate that shall be used for fold change/effect size
+    #   # based downstream analyses.
+    #   primary_variable: media_condition
+    #   # base level of the primary variable (will be considered as denominator
+    #   # in the fold change/effect size estimation).
+    #   base_level: untreated
   # significance level to use for volcano, ma- and qq-plots
   sig-level:
     volcano-plot: 0.05
     ma-plot: 0.05
     qq-plot: 0.05
+
+quantification_mode:
+  kallisto:
+    activate: true
+  salmon:
+    activate: false
+  rsem:
+    activate: false
+  
 
 diffsplice:
   activate: true
@@ -74,9 +92,9 @@ enrichment:
     fdr_go_terms: 0.05
   fgsea:
     # tool is only run if set to `true`
-    activate: false
+    activate: true
     # if activated, you need to provide a GMT file with gene sets of interest
-    gene_sets_file: "resources/gene_sets/dummy.gmt"
+    gene_sets_file: "resources/gene_sets/dummy_genes.gmt"
     fdr_gene_set: 0.05
     # minimum achievable p-value  (equivalent to the reciprocal of the number of permutations, see fgsea docs)
     eps: 1.0e-50
@@ -129,3 +147,7 @@ params:
   cutadapt-pe: 
     adapters: "-a ACGGATCGATCGATCGATCGAT -g GGATCGATCGATCGATCGAT -A ACGGATCGATCGATCGATCGAT -G GGATCGATCGATCGATCGAT"
     extra: "--minimum-length 33 -e 0.005 --overlap 7"
+  star-pe:
+    extra: ""
+  star-se:
+    extra: ""
